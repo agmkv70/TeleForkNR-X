@@ -835,6 +835,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public boolean hasUnreadReactions () {
+    if (isArchive() ? Settings.instance().hideReactions() : Settings.instance().hideReactions(getChatId())) {
+      return false;
+    }
     if (isArchive()) {
       return archive != null && archive.hasUnreadReactions();
     } else {

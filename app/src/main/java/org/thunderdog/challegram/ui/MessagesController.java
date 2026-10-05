@@ -2226,6 +2226,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
       });
     } else if (id == R.id.btn_openLinkedChat) {
       openLinkedChat(false);
+    } else if (id == R.id.btn_toggleChatReactions) {
+      Settings.instance().setReactionsShownInChat(getChatId(), !Settings.instance().areReactionsShownInChat(getChatId()));
+      manager.refreshReactionsVisibility();
+      setReactionCountBadge(chat.unreadReactionCount);
+    } else if (id == R.id.btn_follow) {
+      joinChat();
+    } else if (id == R.id.btn_toggleBottomBar) {
+      Settings.instance().setNewSetting(Settings.SETTING_FLAG_SHOW_OPTIONAL_BOTTOM_BAR, !Settings.instance().getNewSetting(Settings.SETTING_FLAG_SHOW_OPTIONAL_BOTTOM_BAR));
+      updateBottomBar(true);
+    } else if (id == R.id.btn_toggleComments) {
+      Settings.instance().setCommentsHidden(getChatId(), !Settings.instance().areCommentsHidden(getChatId()));
+      manager.rebuildLayouts();
+      updateBottomBar(true);
     } else if (id == R.id.btn_openDirectMessages) {
       openLinkedChat(true);
     } else if (id == R.id.btn_manageGroup) {
@@ -3157,22 +3170,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       return;
     }
+    optionalBottomAction = BOTTOM_ACTION_NONE;
     TdApi.ChatMemberStatus status = tdlib.chatStatus(chat.id);
     if (tdlib.isChannel(chat.id) && status != null && !TD.isAdmin(status)) {
       setInputVisible(false, false);
       if (TD.isLeft(status)) {
-        showBottomButton(BOTTOM_ACTION_FOLLOW, 0, isUpdate);
+        showOptionalBottomButton(BOTTOM_ACTION_FOLLOW, 0, isUpdate);
       } else {
         TdApi.SupergroupFullInfo info = tdlib.cache().supergroupFull(ChatId.toSupergroupId(chat.id));
-        if (info != null && info.linkedChatId != 0) {
-          showBottomButton(BOTTOM_ACTION_DISCUSS, info.linkedChatId, isUpdate);
+        if (info != null && info.linkedChatId != 0 && !Settings.instance().areCommentsHidden(chat.id)) {
+          showOptionalBottomButton(BOTTOM_ACTION_DISCUSS, info.linkedChatId, isUpdate);
         } else {
-          showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
+          showOptionalBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
         }
       }
     } else if (tdlib.isRepliesChat(chat.id)) {
       setInputVisible(false, false);
-      showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
+      showOptionalBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
     } else {
       hideBottomBar(isUpdate);
 
@@ -3422,7 +3436,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public static int getSlideBackBound () {
-    return TGMessage.getContentLeft();
+    return TGMessage.getHeaderLeft(); // TeleForkNR: the avatar column width, as before
   }
 
   @Override
@@ -4504,23 +4518,37 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     }
 
-    if (linkedChatId != 0 && bottomButtonAction != BOTTOM_ACTION_DISCUSS) {
+    boolean commentsHidden = linkedChatId != 0 && tdlib.isChannel(getChatId()) && Settings.instance().areCommentsHidden(getChatId());
+    if (linkedChatId != 0 && bottomButtonAction != BOTTOM_ACTION_DISCUSS && !commentsHidden) {
       ids.append(R.id.btn_openLinkedChat);
       strings.append(tdlib.isChannel(getChatId()) ? R.string.LinkedGroup : R.string.LinkedChannel);
+    }
+    if (linkedChatId != 0 && tdlib.isChannel(getChatId())) {
+      ids.append(R.id.btn_toggleComments);
+      strings.append(commentsHidden ? R.string.ShowComments : R.string.HideComments);
     }
     if (tdlib.hasDirectMessagesChat(getChatId())) {
       ids.append(R.id.btn_openDirectMessages);
       strings.append(R.string.DirectMessages);
     }
 
+    if (Settings.instance().hideReactions() && !tdlib.isSelfChat(chat.id)) {
+      ids.append(R.id.btn_toggleChatReactions);
+      strings.append(Settings.instance().areReactionsShownInChat(chat.id) ? R.string.HideReactions : R.string.ShowReactions);
+    }
+    if (optionalBottomAction == BOTTOM_ACTION_FOLLOW && bottomButtonAction != BOTTOM_ACTION_FOLLOW) {
+      ids.append(R.id.btn_follow);
+      strings.append(R.string.Follow);
+    }
+    if (optionalBottomAction != BOTTOM_ACTION_NONE) {
+      ids.append(R.id.btn_toggleBottomBar);
+      strings.append(Settings.instance().getNewSetting(Settings.SETTING_FLAG_SHOW_OPTIONAL_BOTTOM_BAR) ? R.string.HideBottomBar : R.string.ShowBottomBar);
+    }
+
     if (BuildConfig.DEBUG) {
       if (TD.isSecretChat(chat.type)) {
         ids.append(R.id.btn_sendScreenshotNotification);
         strings.append("Send screenshot notification");
-      }
-      if (!hasSendBasicMessagePermission()) {
-        ids.append(R.id.btn_debugShowHideBottomBar);
-        strings.append("Show/hide bottom bar");
       }
     }
 
@@ -5959,6 +5987,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
     checkExtraPadding();
   }
 
+  // TeleForkNR: Follow, Mute/Unmute and Discuss duplicate the ⋮ menu (Follow, Mute, Linked group),
+  // so they are hidden unless the user turns them back on.
+  private int optionalBottomAction;
+
+  private void showOptionalBottomButton (int bottomButtonAction, long bottomButtonData, boolean animated) {
+    optionalBottomAction = bottomButtonAction;
+    if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_SHOW_OPTIONAL_BOTTOM_BAR)) {
+      showBottomButton(bottomButtonAction, bottomButtonData, animated);
+    } else {
+      this.bottomButtonAction = BOTTOM_ACTION_NONE;
+      hideBottomBar(animated);
+    }
+  }
+
   private void hideBottomBar (boolean animated) {
     bottomBarVisible.setValue(false, animated);
     checkExtraPadding();
@@ -6339,6 +6381,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void setReactionCountBadge (int reactionCount) {
+    if (Settings.instance().hideReactions(getChatId())) {
+      reactionCount = 0; // TeleForkNR: no floating unread-reactions button
+    }
     if (reactionCount > 0 && (inPreviewMode || isInForceTouchMode() || areScheduledOnly())) {
       return;
     }

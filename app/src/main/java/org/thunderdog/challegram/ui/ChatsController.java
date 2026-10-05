@@ -262,7 +262,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     @Override
     public void onDraw (@NonNull Canvas c, RecyclerView parent, @NonNull RecyclerView.State state) {
       final int childCount = parent.getChildCount();
-      final int separatorLeft = Screen.dp(72f);
+      final int separatorLeft = ChatView.getLeftPadding(Settings.instance().getChatListMode());
       final int separatorHeight = Math.max(1, Screen.dp(.5f, 3f));
       final int separatorColor = Theme.separatorColor();
       final float maxAlpha = Theme.getShadowDepth();

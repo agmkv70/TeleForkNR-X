@@ -706,6 +706,11 @@ public class TdlibMessageViewer {
     }
 
     private boolean checkNeedRestrictScreenshots () {
+      if (messageSource.getConstructor() == TdApi.MessageSourceChatList.CONSTRUCTOR) {
+        // TeleForkNR: like the official apps, a protected chat's preview in the list does not
+        // block screenshots; opening that chat still does, through its own viewport.
+        return false;
+      }
       if (!state.visibleProtectedChatIds.isEmpty()) {
         return true;
       }

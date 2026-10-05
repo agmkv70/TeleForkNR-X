@@ -421,7 +421,7 @@ public final class TGCommentButton implements FactorAnimator.Target, TextColorSe
     long complexIconColor = accentColor != null ? accentColor.getNameComplexColor() : 0;
     int iconColorId = complexIconColor != 0 ? (Theme.isColorId(complexIconColor) ? Theme.extractColorValue(complexIconColor) : ColorId.NONE) : ColorId.inlineIcon;
     Drawable icon = drawableProvider.getSparseDrawable(R.drawable.baseline_forum_18, iconColorId);
-    float iconX = useBubbles ? left + Screen.dp(16f) : (TGMessage.getContentLeft() - icon.getMinimumWidth()) / 2f;
+    float iconX = useBubbles ? left + Screen.dp(16f) : (TGMessage.getHeaderLeft() - icon.getMinimumWidth()) / 2f;
     float iconY = rect.centerY() - icon.getMinimumHeight() / 2f;
     Paint iconPaint;
     if (complexIconColor != 0) {
@@ -431,7 +431,7 @@ public final class TGCommentButton implements FactorAnimator.Target, TextColorSe
     }
     Drawables.draw(c, icon, iconX, iconY, iconPaint);
 
-    float textX = useBubbles ? left + Screen.dp(46f) : TGMessage.getContentLeft();
+    float textX = useBubbles ? left + Screen.dp(46f) : TGMessage.getHeaderLeft();
     float textY = rect.centerY();
     drawText(c, textX, textY, alpha);
 

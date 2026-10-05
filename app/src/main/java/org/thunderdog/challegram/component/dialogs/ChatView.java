@@ -145,7 +145,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public static int getLeftPadding (int chatListMode) {
-    return chatListMode != Settings.CHAT_MODE_2LINE ? getAvatarLeft(chatListMode) + getAvatarSize(chatListMode) + Screen.dp(11f) : getViewHeight(chatListMode);
+    // TeleForkNR: text follows the smaller avatar in every mode (2-line used the 72dp row height)
+    return getAvatarLeft(chatListMode) + getAvatarSize(chatListMode) + Screen.dp(11f);
   }
 
   public static int getRightPadding () {
@@ -232,13 +233,14 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
 
   public static float getAvatarSizeDp (int chatListMode) {
     switch (chatListMode) {
+      // TeleForkNR: 30% smaller than upstream (60, 58, 52)
       case Settings.CHAT_MODE_3LINE_BIG:
-        return 60f;
+        return 42f;
       case Settings.CHAT_MODE_3LINE:
-        return 58f;
+        return 41f;
       case Settings.CHAT_MODE_2LINE:
       default:
-        return 52f;
+        return 36f;
     }
   }
 
@@ -247,14 +249,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   private static int getAvatarTop (int chatListMode) {
-    switch (chatListMode) {
-      case Settings.CHAT_MODE_3LINE_BIG:
-        return Screen.dp(11f);
-      case Settings.CHAT_MODE_3LINE:
-      case Settings.CHAT_MODE_2LINE:
-      default:
-        return Screen.dp(10f);
-    }
+    // TeleForkNR: centred; upstream's fixed 10-11dp tops were centred for the larger avatars
+    return (getViewHeight(chatListMode) - getAvatarSize(chatListMode)) / 2;
   }
 
   private static int getTimePadding () {

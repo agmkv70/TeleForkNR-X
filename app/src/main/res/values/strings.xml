@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
   <string name="language_continueInLanguage">Continue in English</string>
 
-  <string name="Page1Title">Telegram X</string>
+  <string name="Page1Title">TeleForkNR</string>
   <string name="Page2Title">Fast</string>
   <string name="Page3Title">Free</string>
   <string name="Page4Title">Powerful</string>
@@ -30,7 +30,7 @@
   <string name="network_LookupFailed">No routes found, connecting directly…</string>
   <string name="network_LookupFailedProxy">No routes found, using the previous proxy…</string>
 
-  <string name="AppNameAndVersion">Telegram X %1$s</string>
+  <string name="AppNameAndVersion">TeleForkNR %1$s</string>
   <string name="language_code">en</string>
   <string name="language_emoji">&#127482;&#127480;</string>
   <string name="language_name">English</string>
@@ -2082,6 +2082,12 @@
   <string name="AdminRights">Admin Rights</string>
 
   <string name="Reactions">Reactions</string>
+  <string name="HideReactions">Hide reactions</string>
+  <string name="ShowReactions">Show reactions</string>
+  <string name="HideComments">Hide comments</string>
+  <string name="ShowComments">Show comments</string>
+  <string name="ShowBottomBar">Show bottom bar</string>
+  <string name="HideBottomBar">Hide bottom bar</string>
   <string name="ReactionsDisabled">Reactions disabled</string>
   <string name="ReactionsEnabledAll">**All** reactions enabled</string>
   <string name="ReactionsEnabled_one">%1$s reaction enabled</string>

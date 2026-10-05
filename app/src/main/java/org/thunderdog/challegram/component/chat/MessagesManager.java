@@ -1790,6 +1790,16 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  public void refreshReactionsVisibility () {
+    ArrayList<TGMessage> items = adapter.getItems();
+    if (items != null) {
+      for (TGMessage m : items) {
+        m.refreshReactionsVisibility();
+      }
+    }
+    rebuildLayouts();
+  }
+
   public void rebuildLayouts () {
     ArrayList<TGMessage> items = adapter.getItems();
     if (items != null) {

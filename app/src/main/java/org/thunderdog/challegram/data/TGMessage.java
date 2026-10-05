@@ -1016,7 +1016,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return false;
     }
     if (isChannel()) {
-      return findMessageWithReplyInfo() != null;
+      return findMessageWithReplyInfo() != null && !Settings.instance().areCommentsHidden(msg.chatId);
     }
     if (isRepliesChat()) {
       return FeatureToggles.SHOW_VIEW_IN_CHAT_BUTTON_IN_REPLIES && msg.forwardInfo != null && Td.hasMessageSource(msg.forwardInfo) && msg.forwardInfo.source.chatId != msg.chatId;
@@ -1229,7 +1229,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     } else {
       if (!useForward()) {
         pRealContentX = xContentLeft;
-        pContentY = ((flags & FLAG_HEADER_ENABLED) != 0 ? xContentTop : xPaddingTop) + getHeaderPadding();
+        pContentY = ((flags & FLAG_HEADER_ENABLED) != 0 ? getHeaderContentTop() : xPaddingTop) + getHeaderPadding();
       } else {
         pRealContentX = xfContentLeft;
         pContentY = getForwardTop() + getForwardHeaderHeight();
@@ -2095,7 +2095,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
       // Author
       if (needName(true)) {
-        int left = useBubbles ? getActualLeftContentEdge() + xBubblePadding + xBubblePaddingSmall : xContentLeft;
+        int left = useBubbles ? getActualLeftContentEdge() + xBubblePadding + xBubblePaddingSmall : xHeaderLeft;
         int top = useBubbles ? topContentEdge + xBubbleNameTop : xNameTop + getHeaderPadding();
         boolean isPsa = isPsa() && forceForwardOrImportInfo();
         if (hAuthorNameT != null) {
@@ -3412,7 +3412,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     int timePaddingRight = Screen.dp(16f);
     pTimeLeft = currentWidth - pTimeWidth - timePaddingRight;
 
-    int totalMaxWidth = currentWidth - xContentLeft - Screen.dp(4f);
+    int totalMaxWidth = currentWidth - xHeaderLeft - Screen.dp(4f);
     int max = totalMaxWidth - timePaddingRight - pTimeWidth;
 
     if (shouldShowTicks()) {
@@ -4395,7 +4395,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private int getForwardTop () {
     return useBubbles() ?
       pContentY - getBubbleForwardOffset() :
-      ((flags & FLAG_HEADER_ENABLED) != 0 ? xContentTop - Screen.dp(3f) : xPaddingTop - Screen.dp(3f)) + getHeaderPadding();
+      ((flags & FLAG_HEADER_ENABLED) != 0 ? getHeaderContentTop() - Screen.dp(3f) : xPaddingTop - Screen.dp(3f)) + getHeaderPadding();
   }
 
   private static int getForwardHeaderHeight () {
@@ -5177,6 +5177,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   public boolean canBeReacted () {
+    if (Settings.instance().hideReactions(msg.chatId) && !tdlib.isSelfChat(msg.chatId)) {
+      // TeleForkNR: drops the picker in the message menu, quick-reaction swipes and double tap
+      return false;
+    }
     return !isSponsoredMessage() && !isEventLog() && !Td.isEmpty(messageAvailableReactions) && (tdlib.hasPremium() || Td.hasNonPremiumReactions(messageAvailableReactions));
   }
 
@@ -5846,6 +5850,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     computeQuickButtons();
     return replaceRequired ? MESSAGE_REPLACE_REQUIRED : getHeight() == oldHeight ? MESSAGE_INVALIDATED : MESSAGE_CHANGED;
+  }
+
+  public final void refreshReactionsVisibility () {
+    updateInteractionInfo(true); // TeleForkNR: re-reads reactions after the per-chat switch changes
   }
 
   private void updateInteractionInfo (boolean allowAnimation) {
@@ -7913,6 +7921,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   protected static int xContentLeft, xContentTop, xContentOffset;
   protected static int xfContentLeft;
   protected static int xPaddingTop, xPaddingBottom, xPaddingRight, xTextPadding, xHeaderPadding;
+  private static int xHeaderLeft;
   protected static int xDatePadding, xDateTop;
   protected static int xBadgeHeight, xBadgeTop, xBadgePadding;
 
@@ -7988,11 +7997,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     xTextLine = Screen.dp(20f);
 
-    xContentLeft = xAvatarLeft + xAvatarRadius * 2 + Screen.dp(10f);
+    // TeleForkNR: the name row keeps upstream's place beside the avatar, while the message
+    // body drops below the avatar and starts at the left margin.
+    xHeaderLeft = xAvatarLeft + xAvatarRadius * 2 + Screen.dp(10f);
+    xContentLeft = Screen.dp(12f);
     xContentOffset = Screen.dp(12f);
     xPaddingTop = Screen.dp(7.5f);
     xPaddingBottom = Screen.dp(7.5f);
-    xPaddingRight = Screen.dp(35f);
+    xPaddingRight = Screen.dp(12f); // TeleForkNR: was 35dp; text now wraps near the edge, in line with full-width media
     xTextPadding = Screen.dp(10f);
 
     xfContentLeft = xContentLeft + Screen.dp(11f);
@@ -8013,6 +8025,15 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public static int getContentLeft () {
     return xContentLeft;
+  }
+
+  public static int getHeaderLeft () {
+    return xHeaderLeft;
+  }
+
+  private int getHeaderContentTop () {
+    // TeleForkNR: content now sits under the avatar instead of beside it
+    return needAvatar() ? Math.max(xContentTop, xAvatarRadius * 2 + Screen.dp(6f)) : xContentTop;
   }
 
   // Icons

@@ -316,6 +316,9 @@ public class Lang {
   private static String getStringImpl (@Nullable TdApi.LanguagePackInfo languagePackInfo, @StringRes int resId, boolean allowCloud) {
     if (resId == 0)
       throw new Resources.NotFoundException("resId == 0");
+    // TeleForkNR: language packs would push "Telegram X" back into these
+    if (resId == R.string.AppName || resId == R.string.AppNameAndVersion || resId == R.string.Page1Title)
+      allowCloud = false;
     if (allowCloud) {
       if (languagePackInfo == null)
         languagePackInfo = Settings.instance().getLanguagePackInfo();

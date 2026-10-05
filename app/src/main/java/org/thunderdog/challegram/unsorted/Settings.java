@@ -360,6 +360,8 @@ public class Settings {
   private static final String KEY_QUICK_REACTIONS = "quick_reactions";
   private static final String KEY_BIG_REACTIONS_IN_CHANNELS = "big_reactions_in_channels";
   private static final String KEY_BIG_REACTIONS_IN_CHATS = "big_reactions_in_chats";
+  private static final String KEY_HIDE_COMMENTS_PREFIX = "tfnr_hide_comments_";
+  private static final String KEY_SHOW_REACTIONS_PREFIX = "tfnr_show_reactions_";
 
   private static final String KEY_WALLPAPER_PREFIX = "wallpaper";
   private static final String KEY_WALLPAPER_CUSTOM = "_custom";
@@ -429,6 +431,10 @@ public class Settings {
   public static final long SETTING_FLAG_DYNAMIC_ORDER_EMOJI_PACKS = 1 << 18;
   public static final long SETTING_FLAG_FORCE_DEFAULT_ANIMATION_FOR_RIGHT_SWIPE_EDGE = 1 << 19;
   public static final long SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO = 1 << 20;
+
+  // TeleForkNR: kept clear of upstream's low bits
+  public static final long SETTING_FLAG_HIDE_REACTIONS = 1L << 40;
+  public static final long SETTING_FLAG_SHOW_OPTIONAL_BOTTOM_BAR = 1L << 41;
 
   public static final long EXPERIMENT_FLAG_ALLOW_EXPERIMENTS = 1;
   public static final long EXPERIMENT_FLAG_SHOW_PEER_IDS = 1 << 2;
@@ -1362,6 +1368,7 @@ public class Settings {
 
   private long makeDefaultNewSettings () {
     long settings = 0;
+    settings |= SETTING_FLAG_HIDE_REACTIONS; // on by default, removing this UI is the point of the fork
 
     return settings;
   }
@@ -1374,6 +1381,40 @@ public class Settings {
 
   public boolean getNewSetting (long key) {
     return BitwiseUtils.hasFlag(getNewSettings(), key);
+  }
+
+  public boolean hideReactions () {
+    return getNewSetting(SETTING_FLAG_HIDE_REACTIONS);
+  }
+
+  // TeleForkNR: per-chat exception to hideReactions(), set from the chat's ⋮ menu
+  public boolean hideReactions (long chatId) {
+    return hideReactions() && !areReactionsShownInChat(chatId);
+  }
+
+  public boolean areReactionsShownInChat (long chatId) {
+    return chatId != 0 && pmc.getBoolean(KEY_SHOW_REACTIONS_PREFIX + chatId, false);
+  }
+
+  public void setReactionsShownInChat (long chatId, boolean shown) {
+    if (shown) {
+      pmc.putBoolean(KEY_SHOW_REACTIONS_PREFIX + chatId, true);
+    } else {
+      pmc.remove(KEY_SHOW_REACTIONS_PREFIX + chatId);
+    }
+  }
+
+  // TeleForkNR: per-channel switch for comment buttons and the discussion group shortcut
+  public boolean areCommentsHidden (long chatId) {
+    return chatId != 0 && pmc.getBoolean(KEY_HIDE_COMMENTS_PREFIX + chatId, false);
+  }
+
+  public void setCommentsHidden (long chatId, boolean hidden) {
+    if (hidden) {
+      pmc.putBoolean(KEY_HIDE_COMMENTS_PREFIX + chatId, true);
+    } else {
+      pmc.remove(KEY_HIDE_COMMENTS_PREFIX + chatId);
+    }
   }
 
   private boolean setNewSettings (long newSettings) {

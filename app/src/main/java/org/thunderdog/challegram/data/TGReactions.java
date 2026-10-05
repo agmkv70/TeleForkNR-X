@@ -116,6 +116,10 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
   }
 
   public void setReactions (@Nullable TdApi.MessageReactions reactions) {
+    if (reactions != null && !reactions.areTags && Settings.instance().hideReactions(parent.getChatId())) {
+      // TeleForkNR: no chips, no counters. Saved Messages tags share this layout and stay.
+      reactions = null;
+    }
     this.reactionsListEntry.clear();
     this.tdReactionsMap.clear();
     this.reactions = filterUnsupported(reactions);
