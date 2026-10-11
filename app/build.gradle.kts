@@ -44,13 +44,13 @@ val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetu
     layout.projectDirectory.dir(
       "../tdlib/src/main/libs"
     ).asFileTree.matching {
-      include("*/*/*.so")
+      include("*/*/*/*.so")
     },
     layout.projectDirectory.dir(
       "../tdlib/openssl"
     ).asFileTree.matching {
-      include("*/*/lib/libcryptox.so")
-      include("*/*/lib/libsslx.so")
+      include("*/*/*/lib/libcryptox.so")
+      include("*/*/*/lib/libsslx.so")
     }
   )
 }
@@ -143,6 +143,9 @@ val fetchLocalizedStrings = tasks.register<FetchLocalizedStringsTask>("fetchLoca
   description = "Generates and updates all strings.xml resources based on translations.telegram.org"
   resOutputDir.set(layout.buildDirectory.dir(
     "generated/tgx/locales/res"
+  ))
+  localeFiltersOutputFile.set(layout.buildDirectory.file(
+    "generated/tgx/locales/filter.txt"
   ))
 }
 
@@ -565,6 +568,7 @@ android {
           }
           arguments(
             "-DANDROID_PLATFORM=android-${selectedMinSdk}",
+            "-DANDROID_MIN_SDK_VERSION=${selectedMinSdk}",
             "-DANDROID_STL=${if (appliedNdkVersion.ndkVersionMajor() >= 27) "c++_shared" else "c++_static"}",
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
             "-DCMAKE_SKIP_RPATH=ON",
@@ -683,6 +687,11 @@ android {
       variant.sources.res?.addGeneratedSourceDirectory(
         fetchLocalizedStrings, FetchLocalizedStringsTask::resOutputDir
       )
+      variant.androidResources.localeFilters.addAll(
+        fetchLocalizedStrings.flatMap { it.localeFiltersOutputFile }.map { file ->
+          file.asFile.readLines().filter { it.isNotBlank() }
+        }
+      )
     }
 
     onVariants { variant ->
@@ -761,6 +770,11 @@ android {
           generateEmojiSetsTask, GenerateEmojiSetsTask::kotlinOutputDir
         )
       }
+
+      if (!config.isHuaweiBuild && abiVariant.isUniversal) {
+        variant.packaging.dex.useLegacyPackaging = true
+        variant.packaging.jniLibs.useLegacyPackaging = true
+      }
     }
 
     onVariants { variant ->
@@ -835,7 +849,7 @@ android {
 
         var openSslVersionFull = ""
         var openSslReleaseDate = ""
-        val openSslVersionFile = requireFile(project.isolated.rootProject.projectDirectory.file("tdlib/openssl/${ndkVersion}/${abiVariant.filters.first()}/include/openssl/opensslv.h").asFile)
+        val openSslVersionFile = requireFile(project.isolated.rootProject.projectDirectory.file("tdlib/openssl/${ndkVersion}/android-${sdkVariant.minSdk}/${abiVariant.filters.first()}/include/openssl/opensslv.h").asFile)
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {
