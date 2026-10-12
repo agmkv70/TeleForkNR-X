@@ -22,7 +22,7 @@ Search the code for `TeleForkNR` to find each change.
    ```
 3. **Tools:**
    - [MSYS2](https://www.msys2.org) installed at `C:/msys64`, with `pacman -S --needed git mingw-w64-ucrt-x86_64-git-lfs perl make diffutils`
-   - Android SDK with NDK `27.3.13750724`, build-tools `37.0.0` and platform `android-37.2`
+   - Android SDK with NDK `30.0.16248370` (r30), build-tools `37.0.0` and platform `android-37.2`
    - **JDK 25**, needed by the build itself, not just as a toolchain. If `JAVA_HOME` points somewhere else, set it for the build command.
 4. **`local.properties`** is gitignored and holds:
    ```properties
@@ -56,8 +56,12 @@ The key and its password file are outside the repo, in `C:/Users/nik/AndroidDev/
 
 **Never commit these files, and keep a backup somewhere else.** Without this key, no future build can update installed copies. Users would have to uninstall and log in again.
 
-A debug build and a release build are signed with different keys, so neither can install as an update over the other. Uninstall one before installing the other. Uninstalling logs you out and clears TeleForkNR's local settings.
+A debug build and a release build are signed with different keys, so neither can install as an update over the other. Uninstall one before installing the other. Uninstalling clears TeleForkNR's local settings.
+
+**Log out inside the app before uninstalling.** Uninstalling doesn't end the session on Telegram's servers. Telegram then sends the next login code "to your other device", which is the dead session, and no free option gets you back in. Buying one week of Telegram Premium on the login screen is the way out, because it brings back real SMS codes and lets you end the old sessions.
 
 ## Installing on a phone
 
 `adb install -r <apk>`. On Xiaomi/MIUI, turn on Developer options → **USB debugging** and **Install via USB**. Then accept the prompts on the phone.
+
+If MIUI refuses with `INSTALL_FAILED_USER_RESTRICTED`, copy the APK with `adb push <apk> /sdcard/Download/` and install it from the file manager.
